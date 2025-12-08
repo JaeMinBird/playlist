@@ -1,8 +1,11 @@
 import MarqueeCards from "@/components/MarqueeCards";
+import Header from "@/components/Header";
 
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-white" style={{ overflowX: 'hidden', overflowY: 'visible' }}>
+      <Header />
+      
       {/* Hero text */}
       <div className="flex flex-col items-center pt-16 pb-8">
         <h1 
