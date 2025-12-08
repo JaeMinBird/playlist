@@ -146,7 +146,7 @@ const CarouselCard = forwardRef<
     <motion.div
       ref={cardRef}
       data-card-id={id}
-      className="h-40 w-40 flex-shrink-0 cursor-pointer bg-white shadow-xl"
+      className="h-40 w-40 flex-shrink-0 cursor-pointer shadow-xl bg-white"
       style={{
         y,
         rotateY,
