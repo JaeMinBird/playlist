@@ -173,9 +173,9 @@ export default function MarqueeCards() {
         onClick={() => isZoomed && zoomedCardRef.current && handleCardClick({ currentTarget: zoomedCardRef.current } as any)}
       />
       
-      <div className="relative w-full pb-12 pt-32">
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-32 bg-gradient-to-r from-white via-white/80 to-transparent dark:from-black dark:via-black/80" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-32 bg-gradient-to-l from-white via-white/80 to-transparent dark:from-black dark:via-black/80" />
+      <div className="relative w-full pb-12 pt-8">
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-32 bg-gradient-to-r from-white via-white/80 to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-32 bg-gradient-to-l from-white via-white/80 to-transparent" />
 
         <div ref={marqueeRef} className="flex" style={{ gap: '7.2px' }}>
           {cards.map((i) => (
