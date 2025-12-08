@@ -27,7 +27,7 @@ export interface CarouselHandle {
 
 // Individual card component with motion
 const CarouselCard = forwardRef<
-  { reset: () => void },
+  { reset: () => void; checkHover: () => void },
   { 
     id: number; 
     isPaused: boolean;
@@ -77,26 +77,47 @@ const CarouselCard = forwardRef<
     );
   }, []);
 
-  // Expose reset function - but apply hover state if cursor is still on card
+  // Apply hover effect
+  const applyHover = useCallback(() => {
+    y.set(-60);
+    rotateY.set(-40);
+    skewY.set(14);
+    scale.set(1.05);
+    opacity.set(0.9);
+  }, [y, rotateY, skewY, scale, opacity]);
+
+  // Remove hover effect
+  const removeHover = useCallback(() => {
+    y.set(0);
+    rotateY.set(-50);
+    skewY.set(20);
+    scale.set(1);
+    opacity.set(0.7);
+  }, [y, rotateY, skewY, scale, opacity]);
+
+  // Expose reset and checkHover functions
   useImperativeHandle(ref, () => ({
     reset: () => {
       // Check both: direct hover tracking AND cursor position over card bounds
-      // The latter handles when cursor is over the viewer card that's positioned over this card
       if (isHoveredRef.current || isCursorOverCard()) {
-        // Cursor is on/over this card, apply hover effect
-        isHoveredRef.current = true; // Sync the ref
-        y.set(-60);
-        rotateY.set(-40);
-        skewY.set(14);
-        scale.set(1.05);
-        opacity.set(0.9);
+        isHoveredRef.current = true;
+        applyHover();
       } else {
-        // Cursor is not on this card, reset to default
-        y.set(0);
-        rotateY.set(-50);
-        skewY.set(20);
-        scale.set(1);
-        opacity.set(0.7);
+        removeHover();
+      }
+    },
+    checkHover: () => {
+      // Called periodically to check if cursor moved over/away from card due to carousel movement
+      const cursorOver = isCursorOverCard();
+      
+      if (cursorOver && !isHoveredRef.current) {
+        // Cursor just moved over this card (carousel brought it under cursor)
+        isHoveredRef.current = true;
+        applyHover();
+      } else if (!cursorOver && isHoveredRef.current) {
+        // Cursor just moved away from this card (carousel moved it away)
+        isHoveredRef.current = false;
+        removeHover();
       }
     }
   }));
@@ -104,22 +125,14 @@ const CarouselCard = forwardRef<
   const handleMouseEnter = useCallback(() => {
     isHoveredRef.current = true;
     if (isPaused) return;
-    y.set(-60);
-    rotateY.set(-40);
-    skewY.set(14);
-    scale.set(1.05);
-    opacity.set(0.9);
-  }, [isPaused, y, rotateY, skewY, scale, opacity]);
+    applyHover();
+  }, [isPaused, applyHover]);
 
   const handleMouseLeave = useCallback(() => {
     isHoveredRef.current = false;
     if (isPaused) return;
-    y.set(0);
-    rotateY.set(-50);
-    skewY.set(20);
-    scale.set(1);
-    opacity.set(0.7);
-  }, [isPaused, y, rotateY, skewY, scale, opacity]);
+    removeHover();
+  }, [isPaused, removeHover]);
 
   const handleClick = useCallback(() => {
     if (!cardRef.current) return;
@@ -174,9 +187,9 @@ const Carousel = forwardRef<CarouselHandle, CarouselProps>(({
   onCardClick,
   selectedCardId = null,
 }, ref) => {
-  const cardRefs = useRef<{ reset: () => void }[]>([]);
+  const cardRefs = useRef<{ reset: () => void; checkHover: () => void }[]>([]);
 
-  // Track global cursor position for hover detection after viewer closes
+  // Track global cursor position for hover detection
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       (window as any).__cursorX = e.clientX;
@@ -186,6 +199,18 @@ const Carousel = forwardRef<CarouselHandle, CarouselProps>(({
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
+
+  // Poll for hover changes while carousel is moving (not paused)
+  useEffect(() => {
+    if (isPaused) return;
+
+    const intervalId = setInterval(() => {
+      // Check all cards for hover state changes due to carousel movement
+      cardRefs.current.forEach(cardRef => cardRef?.checkHover());
+    }, 50); // Check every 50ms for responsive feel
+
+    return () => clearInterval(intervalId);
+  }, [isPaused]);
 
   // Calculate dimensions
   const cardWidth = 160;
