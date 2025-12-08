@@ -28,8 +28,8 @@ export async function GET(
       .eq('id', id)
       .single();
 
-    if (error) {
-      if (error.code === 'PGRST116') {
+    if (error || !playlist) {
+      if (error?.code === 'PGRST116' || !playlist) {
         return NextResponse.json({ error: 'Playlist not found' }, { status: 404 });
       }
       console.error('Error fetching playlist:', error);
@@ -37,12 +37,13 @@ export async function GET(
     }
 
     // Sort songs by position
-    if (playlist.playlist_songs) {
-      playlist.playlist_songs.sort((a, b) => a.position - b.position);
+    const playlistSongs = (playlist as { playlist_songs?: { position: number; added_at: string; songs: { duration_ms: number | null } | null }[] }).playlist_songs;
+    if (playlistSongs) {
+      playlistSongs.sort((a, b) => a.position - b.position);
     }
 
     // Calculate stats
-    const songs = playlist.playlist_songs || [];
+    const songs = playlistSongs || [];
     const totalDuration = songs.reduce((acc, ps) => {
       return acc + (ps.songs?.duration_ms || 0);
     }, 0);
@@ -50,6 +51,7 @@ export async function GET(
     return NextResponse.json({
       playlist: {
         ...playlist,
+        playlist_songs: playlistSongs,
         song_count: songs.length,
         total_duration_ms: totalDuration,
       }
