@@ -36,6 +36,7 @@ const CarouselCard = forwardRef<
   }
 >(({ id, isPaused, isHidden, onClick }, ref) => {
   const cardRef = useRef<HTMLDivElement>(null);
+  const isHoveredRef = useRef(false);
 
   // Spring-based hover animations
   const y = useSpring(0, { stiffness: 300, damping: 30 });
@@ -62,18 +63,46 @@ const CarouselCard = forwardRef<
     };
   }, [rotateY, skewY, scale, y]);
 
-  // Expose reset function
+  // Check if cursor is within card bounds
+  const isCursorOverCard = useCallback(() => {
+    if (!cardRef.current) return false;
+    const rect = cardRef.current.getBoundingClientRect();
+    const mouseX = (window as any).__cursorX ?? -1;
+    const mouseY = (window as any).__cursorY ?? -1;
+    return (
+      mouseX >= rect.left &&
+      mouseX <= rect.right &&
+      mouseY >= rect.top &&
+      mouseY <= rect.bottom
+    );
+  }, []);
+
+  // Expose reset function - but apply hover state if cursor is still on card
   useImperativeHandle(ref, () => ({
     reset: () => {
-      y.set(0);
-      rotateY.set(-50);
-      skewY.set(20);
-      scale.set(1);
-      opacity.set(0.7);
+      // Check both: direct hover tracking AND cursor position over card bounds
+      // The latter handles when cursor is over the viewer card that's positioned over this card
+      if (isHoveredRef.current || isCursorOverCard()) {
+        // Cursor is on/over this card, apply hover effect
+        isHoveredRef.current = true; // Sync the ref
+        y.set(-60);
+        rotateY.set(-40);
+        skewY.set(14);
+        scale.set(1.05);
+        opacity.set(0.9);
+      } else {
+        // Cursor is not on this card, reset to default
+        y.set(0);
+        rotateY.set(-50);
+        skewY.set(20);
+        scale.set(1);
+        opacity.set(0.7);
+      }
     }
   }));
 
   const handleMouseEnter = useCallback(() => {
+    isHoveredRef.current = true;
     if (isPaused) return;
     y.set(-60);
     rotateY.set(-40);
@@ -83,6 +112,7 @@ const CarouselCard = forwardRef<
   }, [isPaused, y, rotateY, skewY, scale, opacity]);
 
   const handleMouseLeave = useCallback(() => {
+    isHoveredRef.current = false;
     if (isPaused) return;
     y.set(0);
     rotateY.set(-50);
@@ -145,6 +175,17 @@ const Carousel = forwardRef<CarouselHandle, CarouselProps>(({
   selectedCardId = null,
 }, ref) => {
   const cardRefs = useRef<{ reset: () => void }[]>([]);
+
+  // Track global cursor position for hover detection after viewer closes
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      (window as any).__cursorX = e.clientX;
+      (window as any).__cursorY = e.clientY;
+    };
+    
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   // Calculate dimensions
   const cardWidth = 160;
