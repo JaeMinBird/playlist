@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import PlaylistGrid from '@/components/PlaylistGrid';
 import Header from '@/components/Header';
 
-export default function LibraryPage() {
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+function LibraryContent() {
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -29,7 +31,7 @@ export default function LibraryPage() {
       if (!user) return;
       
       // Check if profile exists
-      const { data: profile } = await supabase
+      const { data: profile } = await (supabase as any)
         .from('profiles')
         .select('id')
         .eq('id', user.id)
@@ -37,7 +39,7 @@ export default function LibraryPage() {
       
       // If no profile, create one
       if (!profile) {
-        await supabase
+        await (supabase as any)
           .from('profiles')
           .insert({
             id: user.id,
@@ -105,5 +107,17 @@ export default function LibraryPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function LibraryPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    }>
+      <LibraryContent />
+    </Suspense>
   );
 }

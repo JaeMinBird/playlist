@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Playlist } from '@/types/database';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 interface PlaylistWithStats extends Playlist {
   song_count: number;
   total_duration_ms: number;
@@ -25,7 +27,7 @@ export default function PlaylistGrid({ onPlaylistClick, onCreateClick }: Playlis
     setError(null);
 
     try {
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await (supabase as any)
         .from('playlists')
         .select(`
           *,
@@ -48,7 +50,7 @@ export default function PlaylistGrid({ onPlaylistClick, onCreateClick }: Playlis
         return;
       }
 
-      const playlistsWithStats = (data || []).map((playlist) => {
+      const playlistsWithStats = (data || []).map((playlist: any) => {
         const songs = playlist.playlist_songs || [];
         const totalDuration = songs.reduce((acc: number, ps: { songs: { duration_ms: number | null } | null }) => {
           return acc + (ps.songs?.duration_ms || 0);

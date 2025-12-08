@@ -36,8 +36,13 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch playlist' }, { status: 500 });
     }
 
+    // Type the playlist data properly
+    type PlaylistSongData = { position: number; added_at: string; songs: { duration_ms: number | null } | null };
+    type PlaylistData = Record<string, unknown> & { playlist_songs?: PlaylistSongData[] };
+    const typedPlaylist = playlist as PlaylistData;
+
     // Sort songs by position
-    const playlistSongs = (playlist as { playlist_songs?: { position: number; added_at: string; songs: { duration_ms: number | null } | null }[] }).playlist_songs;
+    const playlistSongs = typedPlaylist.playlist_songs;
     if (playlistSongs) {
       playlistSongs.sort((a, b) => a.position - b.position);
     }
@@ -50,7 +55,7 @@ export async function GET(
 
     return NextResponse.json({
       playlist: {
-        ...playlist,
+        ...typedPlaylist,
         playlist_songs: playlistSongs,
         song_count: songs.length,
         total_duration_ms: totalDuration,
@@ -79,7 +84,7 @@ export async function PATCH(
     const body = await request.json();
     const { name, description, cover_art_url } = body;
 
-    const updates: Record<string, unknown> = {};
+    const updates: { name?: string; description?: string | null; cover_art_url?: string | null } = {};
     if (name !== undefined) updates.name = name.trim();
     if (description !== undefined) updates.description = description?.trim() || null;
     if (cover_art_url !== undefined) updates.cover_art_url = cover_art_url || null;
@@ -88,7 +93,8 @@ export async function PATCH(
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
 
-    const { data: playlist, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: playlist, error } = await (supabase as any)
       .from('playlists')
       .update(updates)
       .eq('id', id)

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { fetchPlaylistDetails, fetchPlaylistTracks, SpotifyTrack } from '@/lib/spotify';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export async function POST(request: NextRequest) {
   const accessToken = request.cookies.get('spotify_access_token')?.value;
   
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest) {
     const coverArtUrl = spotifyPlaylist.images?.[0]?.url || null;
     
     // Create playlist in our database
-    const { data: newPlaylist, error: playlistError } = await supabase
+    const { data: newPlaylist, error: playlistError } = await (supabase as any)
       .from('playlists')
       .insert({
         user_id: user.id,
@@ -81,7 +83,7 @@ export async function POST(request: NextRequest) {
       const lastfmId = `spotify_${track.id}`;
       
       // Check if song exists
-      let { data: existingSong } = await supabase
+      let { data: existingSong } = await (supabase as any)
         .from('songs')
         .select('id')
         .eq('lastfm_id', lastfmId)
@@ -89,7 +91,7 @@ export async function POST(request: NextRequest) {
       
       // If not, insert it
       if (!existingSong) {
-        const { data: newSong, error: songError } = await supabase
+        const { data: newSong, error: songError } = await (supabase as any)
           .from('songs')
           .insert({
             lastfm_id: lastfmId,
@@ -106,7 +108,7 @@ export async function POST(request: NextRequest) {
         if (songError) {
           // Handle race condition
           if (songError.code === '23505') {
-            const { data: retryFetch } = await supabase
+            const { data: retryFetch } = await (supabase as any)
               .from('songs')
               .select('id')
               .eq('lastfm_id', lastfmId)
@@ -123,7 +125,7 @@ export async function POST(request: NextRequest) {
       
       if (existingSong) {
         // Add to playlist
-        await supabase
+        await (supabase as any)
           .from('playlist_songs')
           .insert({
             playlist_id: newPlaylist.id,

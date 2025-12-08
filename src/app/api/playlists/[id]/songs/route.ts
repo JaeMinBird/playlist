@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTrackWithAlbumArt, type SongData } from '@/lib/lastfm';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 // POST /api/playlists/[id]/songs - Add a song to playlist
 export async function POST(
   request: NextRequest,
@@ -39,7 +41,7 @@ export async function POST(
     }
 
     // Check if song exists in our cache
-    let { data: existingSong } = await supabase
+    let { data: existingSong } = await (supabase as any)
       .from('songs')
       .select('id')
       .eq('lastfm_id', songData.lastfm_id)
@@ -47,7 +49,7 @@ export async function POST(
 
     // If not, insert it
     if (!existingSong) {
-      const { data: newSong, error: insertError } = await supabase
+      const { data: newSong, error: insertError } = await (supabase as any)
         .from('songs')
         .insert({
           lastfm_id: songData.lastfm_id,
@@ -64,7 +66,7 @@ export async function POST(
       if (insertError) {
         // Handle race condition - song might have been inserted by another request
         if (insertError.code === '23505') {
-          const { data: retryFetch } = await supabase
+          const { data: retryFetch } = await (supabase as any)
             .from('songs')
             .select('id')
             .eq('lastfm_id', songData.lastfm_id)
@@ -84,7 +86,7 @@ export async function POST(
     }
 
     // Get current max position in playlist
-    const { data: maxPosition } = await supabase
+    const { data: maxPosition } = await (supabase as any)
       .from('playlist_songs')
       .select('position')
       .eq('playlist_id', playlistId)
@@ -95,7 +97,7 @@ export async function POST(
     const newPosition = (maxPosition?.position ?? -1) + 1;
 
     // Add song to playlist
-    const { error: linkError } = await supabase
+    const { error: linkError } = await (supabase as any)
       .from('playlist_songs')
       .insert({
         playlist_id: playlistId,
@@ -143,7 +145,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'song_id is required' }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('playlist_songs')
       .delete()
       .eq('playlist_id', playlistId)
