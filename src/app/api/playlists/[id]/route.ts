@@ -1,88 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getPlaylist, updatePlaylist, deletePlaylist } from '@/lib/store';
 
-// GET /api/playlists/[id] - Get a specific playlist with songs
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const playlist = await getPlaylist(id);
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!playlist) {
+      return NextResponse.json({ error: 'Playlist not found' }, { status: 404 });
     }
 
-    const { data: playlist, error } = await supabase
-      .from('playlists')
-      .select(`
-        *,
-        playlist_songs (
-          position,
-          added_at,
-          songs (*)
-        )
-      `)
-      .eq('id', id)
-      .single();
-
-    if (error || !playlist) {
-      if (error?.code === 'PGRST116' || !playlist) {
-        return NextResponse.json({ error: 'Playlist not found' }, { status: 404 });
-      }
-      console.error('Error fetching playlist:', error);
-      return NextResponse.json({ error: 'Failed to fetch playlist' }, { status: 500 });
-    }
-
-    // Type the playlist data properly
-    type PlaylistSongData = { position: number; added_at: string; songs: { duration_ms: number | null } | null };
-    type PlaylistData = Record<string, unknown> & { playlist_songs?: PlaylistSongData[] };
-    const typedPlaylist = playlist as PlaylistData;
-
-    // Sort songs by position
-    const playlistSongs = typedPlaylist.playlist_songs;
-    if (playlistSongs) {
-      playlistSongs.sort((a, b) => a.position - b.position);
-    }
-
-    // Calculate stats
-    const songs = playlistSongs || [];
-    const totalDuration = songs.reduce((acc, ps) => {
-      return acc + (ps.songs?.duration_ms || 0);
-    }, 0);
-
-    return NextResponse.json({
-      playlist: {
-        ...typedPlaylist,
-        playlist_songs: playlistSongs,
-        song_count: songs.length,
-        total_duration_ms: totalDuration,
-      }
-    });
+    return NextResponse.json({ playlist });
   } catch (error) {
     console.error('Playlist GET error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-// PATCH /api/playlists/[id] - Update a playlist
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const { name, description, cover_art_url } = body;
+    const { name, description, cover_art_url } = await request.json();
 
     const updates: { name?: string; description?: string | null; cover_art_url?: string | null } = {};
     if (name !== undefined) updates.name = name.trim();
@@ -93,17 +37,10 @@ export async function PATCH(
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: playlist, error } = await (supabase as any)
-      .from('playlists')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
+    const playlist = await updatePlaylist(id, updates);
 
-    if (error) {
-      console.error('Error updating playlist:', error);
-      return NextResponse.json({ error: 'Failed to update playlist' }, { status: 500 });
+    if (!playlist) {
+      return NextResponse.json({ error: 'Playlist not found' }, { status: 404 });
     }
 
     return NextResponse.json({ playlist });
@@ -113,28 +50,16 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/playlists/[id] - Delete a playlist
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const deleted = await deletePlaylist(id);
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { error } = await supabase
-      .from('playlists')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting playlist:', error);
-      return NextResponse.json({ error: 'Failed to delete playlist' }, { status: 500 });
+    if (!deleted) {
+      return NextResponse.json({ error: 'Playlist not found' }, { status: 404 });
     }
 
     return NextResponse.json({ success: true });
@@ -143,4 +68,3 @@ export async function DELETE(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-

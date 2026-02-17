@@ -2,12 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import type { SpotifyPlaylist } from '@/lib/spotify';
 
 export default function ImportPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth();
   const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -15,29 +13,18 @@ export default function ImportPage() {
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const router = useRouter();
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/auth/login');
-    }
-  }, [authLoading, isAuthenticated, router]);
-
-  // Fetch Spotify playlists
   useEffect(() => {
     const fetchPlaylists = async () => {
       try {
         const response = await fetch('/api/spotify/playlists');
-        
+
         if (response.status === 401) {
-          // Not authenticated with Spotify, redirect to auth
           router.push('/api/spotify/auth');
           return;
         }
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch playlists');
-        }
-        
+
+        if (!response.ok) throw new Error('Failed to fetch playlists');
+
         const data = await response.json();
         setPlaylists(data.items || []);
       } catch (err) {
@@ -48,10 +35,8 @@ export default function ImportPage() {
       }
     };
 
-    if (isAuthenticated) {
-      fetchPlaylists();
-    }
-  }, [isAuthenticated, router]);
+    fetchPlaylists();
+  }, [router]);
 
   const handleImport = async (playlist: SpotifyPlaylist) => {
     setImporting(playlist.id);
@@ -72,9 +57,7 @@ export default function ImportPage() {
 
       const data = await response.json();
       setImportSuccess(`Imported "${playlist.name}" with ${data.tracks_imported} tracks!`);
-      
-      // Remove from list after successful import
-      setPlaylists(prev => prev.filter(p => p.id !== playlist.id));
+      setPlaylists((prev) => prev.filter((p) => p.id !== playlist.id));
     } catch (err) {
       console.error('Import error:', err);
       setError(err instanceof Error ? err.message : 'Failed to import playlist');
@@ -82,14 +65,6 @@ export default function ImportPage() {
       setImporting(null);
     }
   };
-
-  if (authLoading || !isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-gray-400">Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -199,4 +174,3 @@ export default function ImportPage() {
     </div>
   );
 }
-

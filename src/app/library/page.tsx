@@ -1,66 +1,16 @@
 'use client';
 
-import { useEffect, Suspense } from 'react';
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import { createClient } from '@/lib/supabase/client';
 import PlaylistGrid from '@/components/PlaylistGrid';
 import Header from '@/components/Header';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 function LibraryContent() {
-  const { isAuthenticated, loading: authLoading, user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClient();
-
-  // Check for Spotify errors in URL
   const spotifyError = searchParams.get('error');
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/auth/login');
-    }
-  }, [authLoading, isAuthenticated, router]);
-
-  // Ensure profile exists for the user
-  useEffect(() => {
-    const ensureProfile = async () => {
-      if (!user) return;
-      
-      // Check if profile exists
-      const { data: profile } = await (supabase as any)
-        .from('profiles')
-        .select('id')
-        .eq('id', user.id)
-        .single();
-      
-      // If no profile, create one
-      if (!profile) {
-        await (supabase as any)
-          .from('profiles')
-          .insert({
-            id: user.id,
-            username: user.user_metadata?.username || user.email?.split('@')[0] || null,
-          });
-      }
-    };
-    
-    ensureProfile();
-  }, [user, supabase]);
-
-  if (authLoading || !isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-gray-400">Loading...</div>
-      </div>
-    );
-  }
-
   const handleImportClick = () => {
-    // Redirect to Spotify auth flow
     router.push('/api/spotify/auth');
   };
 
@@ -83,7 +33,6 @@ function LibraryContent() {
     <div className="min-h-screen bg-white">
       <Header />
 
-      {/* Page content */}
       <div className="pt-20 px-8">
         <h1 
           className="text-4xl font-bold tracking-wider text-black uppercase text-center mb-8"
@@ -100,7 +49,6 @@ function LibraryContent() {
 
         <PlaylistGrid
           onPlaylistClick={(playlist) => {
-            // TODO: Navigate to playlist detail or open viewer
             console.log('Clicked playlist:', playlist);
           }}
           onCreateClick={handleImportClick}

@@ -1,15 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import type { Playlist } from '@/types/database';
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-interface PlaylistWithStats extends Playlist {
-  song_count: number;
-  total_duration_ms: number;
-}
+import type { PlaylistWithStats } from '@/types';
 
 interface PlaylistGridProps {
   onPlaylistClick?: (playlist: PlaylistWithStats) => void;
@@ -20,58 +12,24 @@ export default function PlaylistGrid({ onPlaylistClick, onCreateClick }: Playlis
   const [playlists, setPlaylists] = useState<PlaylistWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
 
   const fetchPlaylists = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const { data, error: fetchError } = await (supabase as any)
-        .from('playlists')
-        .select(`
-          *,
-          playlist_songs (
-            position,
-            songs (duration_ms)
-          )
-        `)
-        .order('created_at', { ascending: false });
+      const res = await fetch('/api/playlists');
+      if (!res.ok) throw new Error('Failed to load playlists');
 
-      if (fetchError) {
-        // Check if it's a "table doesn't exist" error
-        if (fetchError.code === '42P01' || fetchError.message?.includes('does not exist')) {
-          setError('Database tables not set up yet. Please run the schema.sql in your Supabase SQL Editor.');
-        } else {
-          console.error('Error fetching playlists:', fetchError.message, fetchError.code, fetchError);
-          setError(fetchError.message || 'Failed to load playlists');
-        }
-        setLoading(false);
-        return;
-      }
-
-      const playlistsWithStats = (data || []).map((playlist: any) => {
-        const songs = playlist.playlist_songs || [];
-        const totalDuration = songs.reduce((acc: number, ps: { songs: { duration_ms: number | null } | null }) => {
-          return acc + (ps.songs?.duration_ms || 0);
-        }, 0);
-
-        return {
-          ...playlist,
-          song_count: songs.length,
-          total_duration_ms: totalDuration,
-          playlist_songs: undefined,
-        } as PlaylistWithStats;
-      });
-
-      setPlaylists(playlistsWithStats);
+      const data = await res.json();
+      setPlaylists(data.playlists ?? []);
     } catch (err) {
       console.error('Unexpected error:', err);
-      setError('An unexpected error occurred');
+      setError('Failed to load playlists');
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     fetchPlaylists();
@@ -172,4 +130,3 @@ export default function PlaylistGrid({ onPlaylistClick, onCreateClick }: Playlis
     </div>
   );
 }
-
