@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback } from 'react';
 import type { PlaylistWithStats } from '@/types';
 
 interface PlaylistGridProps {
+  selectedId?: string | null;
   onPlaylistClick?: (playlist: PlaylistWithStats) => void;
   onCreateClick?: () => void;
 }
 
-export default function PlaylistGrid({ onPlaylistClick, onCreateClick }: PlaylistGridProps) {
+export default function PlaylistGrid({ selectedId, onPlaylistClick, onCreateClick }: PlaylistGridProps) {
   const [playlists, setPlaylists] = useState<PlaylistWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +72,11 @@ export default function PlaylistGrid({ onPlaylistClick, onCreateClick }: Playlis
         <button
           key={playlist.id}
           onClick={() => onPlaylistClick?.(playlist)}
-          className="group aspect-square bg-white border border-black hover:shadow-lg transition-shadow cursor-pointer flex flex-col"
+          className={`group aspect-square bg-white border hover:shadow-lg transition-all cursor-pointer flex flex-col ${
+            selectedId === playlist.id
+              ? 'border-black border-2 shadow-lg ring-2 ring-black/10'
+              : 'border-black'
+          }`}
         >
           {/* Cover art area */}
           <div className="flex-1 flex items-center justify-center bg-gray-50 overflow-hidden">

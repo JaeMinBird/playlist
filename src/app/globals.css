@@ -21,3 +21,8 @@ body {
 .font-segment {
   font-family: var(--font-segment);
 }
+
+/* Hide native scrollbar for custom scroll indicator */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

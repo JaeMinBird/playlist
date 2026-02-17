@@ -1,14 +1,21 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PlaylistGrid from '@/components/PlaylistGrid';
+import TrackList from '@/components/TrackList';
 import Header from '@/components/Header';
+import type { PlaylistWithStats } from '@/types';
 
 function LibraryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const spotifyError = searchParams.get('error');
+  const [selectedPlaylist, setSelectedPlaylist] = useState<PlaylistWithStats | null>(null);
+
+  const handlePlaylistClick = (playlist: PlaylistWithStats) => {
+    setSelectedPlaylist((prev) => (prev?.id === playlist.id ? null : playlist));
+  };
 
   const handleImportClick = () => {
     router.push('/api/spotify/auth');
@@ -48,12 +55,15 @@ function LibraryContent() {
         )}
 
         <PlaylistGrid
-          onPlaylistClick={(playlist) => {
-            console.log('Clicked playlist:', playlist);
-          }}
+          selectedId={selectedPlaylist?.id ?? null}
+          onPlaylistClick={handlePlaylistClick}
           onCreateClick={handleImportClick}
         />
       </div>
+
+      {selectedPlaylist && (
+        <TrackList playlist={selectedPlaylist} />
+      )}
     </div>
   );
 }

@@ -16,6 +16,7 @@ interface CardRect {
 
 interface CarouselProps {
   cardCount?: number;
+  imageUrls?: (string | null)[];
   isPaused?: boolean;
   onCardClick?: (cardId: number, rect: CardRect) => void;
   selectedCardId?: number | null;
@@ -30,11 +31,12 @@ const CarouselCard = forwardRef<
   { reset: () => void; checkHover: () => void },
   { 
     id: number; 
+    imageUrl?: string | null;
     isPaused: boolean;
     isHidden: boolean;
     onClick: (id: number, rect: CardRect) => void;
   }
->(({ id, isPaused, isHidden, onClick }, ref) => {
+>(({ id, imageUrl, isPaused, isHidden, onClick }, ref) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const isHoveredRef = useRef(false);
 
@@ -175,14 +177,24 @@ const CarouselCard = forwardRef<
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
       whileHover={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}
-    />
+    >
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt=""
+          className="h-full w-full object-cover pointer-events-none"
+          draggable={false}
+        />
+      )}
+    </motion.div>
   );
 });
 
 CarouselCard.displayName = 'CarouselCard';
 
 const Carousel = forwardRef<CarouselHandle, CarouselProps>(({ 
-  cardCount = 36, 
+  cardCount = 36,
+  imageUrls,
   isPaused = false, 
   onCardClick,
   selectedCardId = null,
@@ -253,6 +265,7 @@ const Carousel = forwardRef<CarouselHandle, CarouselProps>(({
               key={i}
               ref={(el) => { if (el) cardRefs.current[i] = el; }}
               id={i}
+              imageUrl={imageUrls?.[i]}
               isPaused={isPaused}
               isHidden={selectedCardId === i}
               onClick={handleCardClick}
