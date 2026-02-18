@@ -10,11 +10,16 @@ export interface Song {
   added_at: string;
 }
 
+export interface PlaylistOwner {
+  name: string;
+  url: string | null;
+}
+
 export interface Playlist {
   id: string;
   name: string;
   description: string | null;
-  owner: string | null;
+  owner: PlaylistOwner | null;
   cover_art_url: string | null;
   created_at: string;
   updated_at: string;

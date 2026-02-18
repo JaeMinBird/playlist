@@ -127,7 +127,13 @@ export default function TrackList({ playlist, onDelete }: TrackListProps) {
             <p className="text-sm text-gray-500 mt-1 line-clamp-2">{playlist.description}</p>
           )}
           {playlist.owner && (
-            <p className="text-sm text-gray-500 mt-1">{playlist.owner}</p>
+            <p className="text-sm text-gray-500 mt-1">
+              {playlist.owner.url ? (
+                <a href={playlist.owner.url} target="_blank" rel="noopener noreferrer" className="hover:underline">@{playlist.owner.name}</a>
+              ) : (
+                <>@{playlist.owner.name}</>
+              )}
+            </p>
           )}
           <p className="text-sm text-gray-400 mt-2">
             {playlist.song_count} song{playlist.song_count !== 1 ? 's' : ''}

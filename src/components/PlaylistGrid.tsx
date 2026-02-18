@@ -121,7 +121,7 @@ function PlaylistCard({
         >
           <p className="font-medium text-sm text-black truncate">{playlist.name}</p>
           <p className="text-xs text-black/50 mt-1 truncate">
-            {playlist.owner && <>{playlist.owner}<span className="mx-1">·</span></>}
+            {playlist.owner && <>@{playlist.owner.name}<span className="mx-1">·</span></>}
             {playlist.song_count} song{playlist.song_count !== 1 ? 's' : ''}
             <span className="mx-1">·</span>
             {formatDuration(playlist.total_duration_ms)}

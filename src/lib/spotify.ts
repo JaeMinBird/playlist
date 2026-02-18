@@ -5,7 +5,7 @@ export interface SpotifyPlaylist {
   id: string;
   name: string;
   description: string | null;
-  images: { url: string; height: number; width: number }[];
+  images: { url: string; height: number | null; width: number | null }[];
   tracks: {
     total: number;
     href: string;
@@ -26,7 +26,7 @@ export interface SpotifyTrack {
   artists: { name: string; id: string }[];
   album: {
     name: string;
-    images: { url: string; height: number; width: number }[];
+    images: { url: string; height: number | null; width: number | null }[];
   };
   external_urls: {
     spotify: string;

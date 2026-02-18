@@ -85,8 +85,25 @@ function SlideInfo({
   const baseX = useTransform(progress, [0, 1], [-500, 0]);
   const opacity = useTransform(progress, [0, 0.4, 1], [0, 0, 1]);
 
+  const wrapName = (name: string, maxPerLine: number) => {
+    const words = name.split(' ');
+    const lines: string[] = [];
+    let current = '';
+    for (const word of words) {
+      const test = current ? `${current} ${word}` : word;
+      if (test.length > maxPerLine && current) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = test;
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
+  };
+
   return (
-    <motion.div style={{ x: baseX, opacity }} className="text-white">
+    <motion.div style={{ x: baseX, opacity }} className="text-white overflow-hidden">
       <motion.h2
         className="text-4xl font-bold"
         style={{
@@ -94,7 +111,9 @@ function SlideInfo({
           opacity: useTransform(progress, [0, 0.3, 0.7], [0, 0, 1]),
         }}
       >
-        {playlist.name}
+        {wrapName(playlist.name, 14).map((line, i) => (
+          <span key={i} className="block">{line}</span>
+        ))}
       </motion.h2>
       <motion.p
         className="mt-2 text-sm text-gray-400"
@@ -126,7 +145,13 @@ function SlideInfo({
         }}
       >
         {playlist.owner && (
-          <p className="text-sm text-gray-400">{playlist.owner}</p>
+          <p className="text-sm text-gray-400">
+            {playlist.owner.url ? (
+              <a href={playlist.owner.url} target="_blank" rel="noopener noreferrer" className="hover:underline">@{playlist.owner.name}</a>
+            ) : (
+              <>@{playlist.owner.name}</>
+            )}
+          </p>
         )}
         <p className="text-sm text-gray-500">
           {playlist.earliest_added_at
@@ -380,9 +405,10 @@ export default function CardViewer({
           >
             {/* Top row: cover art + text info */}
             <div
-              className="flex items-start mx-auto"
+              className="flex items-start mx-auto overflow-hidden"
               style={{
                 width: LAYOUT_WIDTH,
+                maxWidth: LAYOUT_WIDTH,
                 gap: GAP,
               }}
             >
@@ -421,12 +447,12 @@ export default function CardViewer({
 
             {/* Tracklist spanning full layout width */}
             <div
-              className="pt-8 pb-16 mx-auto"
-              style={{ width: LAYOUT_WIDTH }}
+              className="pt-8 pb-16 mx-auto overflow-hidden"
+              style={{ width: LAYOUT_WIDTH, maxWidth: LAYOUT_WIDTH }}
               onClick={(e) => e.stopPropagation()}
             >
               {playlist.songs.length > 0 && (
-                <table className="w-full">
+                <table className="w-full table-fixed">
                   <thead>
                     <tr className="border-b border-white/20 text-left">
                       <th className="pb-2 pr-4 text-[10px] font-medium text-gray-500 uppercase tracking-wider w-10 text-right">#</th>

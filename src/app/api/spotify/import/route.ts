@@ -1,6 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { mkdir, writeFile } from 'fs/promises';
+import { join } from 'path';
 import { fetchFullPlaylist, type SpotifyTrack } from '@/lib/spotify';
 import { importPlaylist } from '@/lib/store';
+
+const COVERS_DIR = join(process.cwd(), 'public', 'covers');
+
+// Spotify CDN size identifiers — swap any smaller variant to 640px
+const SPOTIFY_SIZE_UPGRADES: Record<string, string> = {
+  'ab67706c0000da84': 'ab67706c0000bebb',
+  'ab67706c0000d72d': 'ab67706c0000bebb',
+  'ab67616d00004851': 'ab67616d0000b273',
+  'ab67616d00001e02': 'ab67616d0000b273',
+};
+
+function upgradeUrl(url: string) {
+  for (const [small, large] of Object.entries(SPOTIFY_SIZE_UPGRADES)) {
+    if (url.includes(small)) return url.replace(small, large);
+  }
+  return url;
+}
+
+function pickLargest(images: { url: string; width: number | null }[]) {
+  if (images.length === 0) return null;
+  const withSize = images.filter((img) => img.width != null);
+  if (withSize.length > 0) {
+    return upgradeUrl(withSize.sort((a, b) => b.width! - a.width!)[0].url);
+  }
+  return upgradeUrl(images[0].url);
+}
+
+async function downloadCover(imageUrl: string, playlistId: string): Promise<string | null> {
+  try {
+    const res = await fetch(imageUrl);
+    if (!res.ok) return null;
+
+    const contentType = res.headers.get('content-type') || '';
+    const ext = contentType.includes('png') ? 'png' : 'jpg';
+    const filename = `${playlistId}.${ext}`;
+
+    await mkdir(COVERS_DIR, { recursive: true });
+    const buffer = Buffer.from(await res.arrayBuffer());
+    await writeFile(join(COVERS_DIR, filename), buffer);
+
+    return `/covers/${filename}`;
+  } catch (err) {
+    console.error('Failed to download cover:', err);
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,12 +69,8 @@ export async function POST(request: NextRequest) {
 
     const { details, tracks } = result;
 
-    const pickLargest = (images: { url: string; width: number }[]) =>
-      images.length > 0
-        ? [...images].sort((a, b) => (b.width ?? 0) - (a.width ?? 0))[0].url
-        : null;
-
-    const coverArtUrl = pickLargest(details.images) || null;
+    const remoteUrl = pickLargest(details.images);
+    const localCover = remoteUrl ? await downloadCover(remoteUrl, details.id) : null;
 
     const songs = tracks
       .filter((item): item is { added_at: string; track: SpotifyTrack } => item.track !== null)
@@ -45,8 +89,10 @@ export async function POST(request: NextRequest) {
       {
         name: details.name,
         description: details.description || null,
-        cover_art_url: coverArtUrl,
-        owner: details.owner?.display_name || null,
+        cover_art_url: localCover,
+        owner: details.owner
+          ? { name: details.owner.display_name, url: `https://open.spotify.com/user/${details.owner.id}` }
+          : null,
       },
       songs
     );
