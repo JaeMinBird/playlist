@@ -54,7 +54,11 @@ function ViewerTrackRow({ song, index }: { song: Song; index: number }) {
         {index + 1}
       </td>
       <td className="py-2.5 pr-4">
-        <p className="text-sm text-white truncate">{song.name}</p>
+        {song.url ? (
+          <a href={song.url} target="_blank" rel="noopener noreferrer" className="text-sm text-white truncate block hover:underline">{song.name}</a>
+        ) : (
+          <p className="text-sm text-white truncate">{song.name}</p>
+        )}
         <p className="text-xs text-gray-400 truncate">{song.artist_name}</p>
       </td>
       <td className="py-2.5 pr-4 text-sm text-gray-500 truncate max-w-[200px]">
@@ -114,15 +118,22 @@ function SlideInfo({
           {playlist.description}
         </motion.p>
       )}
-      <motion.p
-        className="mt-6 text-sm font-medium text-gray-500"
+      <motion.div
+        className="mt-6 space-y-1"
         style={{
           x: useTransform(progress, [0, 1], [-15, 0]),
           opacity: useTransform(progress, [0, 0.6, 1], [0, 0, 1]),
         }}
       >
-        Created {formatDate(playlist.created_at)}
-      </motion.p>
+        {playlist.owner && (
+          <p className="text-sm text-gray-400">{playlist.owner}</p>
+        )}
+        <p className="text-sm text-gray-500">
+          {playlist.earliest_added_at
+            ? formatDate(playlist.earliest_added_at)
+            : formatDate(playlist.created_at)}
+        </p>
+      </motion.div>
     </motion.div>
   );
 }

@@ -14,6 +14,7 @@ export interface Playlist {
   id: string;
   name: string;
   description: string | null;
+  owner: string | null;
   cover_art_url: string | null;
   created_at: string;
   updated_at: string;
@@ -23,6 +24,7 @@ export interface Playlist {
 export interface PlaylistWithStats extends Playlist {
   song_count: number;
   total_duration_ms: number;
+  earliest_added_at: string | null;
 }
 
 export interface StoreData {

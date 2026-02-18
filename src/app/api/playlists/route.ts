@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllPlaylists, createPlaylist } from '@/lib/store';
+import { getAllPlaylists, createPlaylist, deletePlaylists } from '@/lib/store';
 
 export async function GET() {
   try {
@@ -28,6 +28,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ playlist }, { status: 201 });
   } catch (error) {
     console.error('Playlists POST error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { ids } = await request.json();
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ error: 'ids array is required' }, { status: 400 });
+    }
+
+    const deleted = await deletePlaylists(ids);
+    return NextResponse.json({ deleted });
+  } catch (error) {
+    console.error('Playlists DELETE error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

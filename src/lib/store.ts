@@ -31,7 +31,10 @@ function generateId(): string {
 
 function withStats(playlist: Playlist): PlaylistWithStats {
   const total = playlist.songs.reduce((sum, s) => sum + (s.duration_ms ?? 0), 0);
-  return { ...playlist, song_count: playlist.songs.length, total_duration_ms: total };
+  const earliest = playlist.songs.length > 0
+    ? playlist.songs.reduce((min, s) => (s.added_at < min ? s.added_at : min), playlist.songs[0].added_at)
+    : null;
+  return { ...playlist, song_count: playlist.songs.length, total_duration_ms: total, earliest_added_at: earliest };
 }
 
 // ── Playlists ────────────────────────────────────────────────
@@ -50,7 +53,7 @@ export async function getPlaylist(id: string): Promise<PlaylistWithStats | null>
 }
 
 export async function createPlaylist(
-  fields: Pick<Playlist, 'name'> & Partial<Pick<Playlist, 'description' | 'cover_art_url'>>
+  fields: Pick<Playlist, 'name'> & Partial<Pick<Playlist, 'description' | 'cover_art_url' | 'owner'>>
 ): Promise<Playlist> {
   const data = await read();
   const now = new Date().toISOString();
@@ -59,6 +62,7 @@ export async function createPlaylist(
     id: generateId(),
     name: fields.name,
     description: fields.description ?? null,
+    owner: fields.owner ?? null,
     cover_art_url: fields.cover_art_url ?? null,
     created_at: now,
     updated_at: now,
@@ -96,6 +100,16 @@ export async function deletePlaylist(id: string): Promise<boolean> {
   if (data.playlists.length === before) return false;
   await write(data);
   return true;
+}
+
+export async function deletePlaylists(ids: string[]): Promise<number> {
+  const data = await read();
+  const before = data.playlists.length;
+  const idSet = new Set(ids);
+  data.playlists = data.playlists.filter((p) => !idSet.has(p.id));
+  const deleted = before - data.playlists.length;
+  if (deleted > 0) await write(data);
+  return deleted;
 }
 
 // ── Songs ────────────────────────────────────────────────────
@@ -137,8 +151,8 @@ export async function removeSong(playlistId: string, songId: string): Promise<bo
 // ── Bulk import helper ───────────────────────────────────────
 
 export async function importPlaylist(
-  fields: Pick<Playlist, 'name'> & Partial<Pick<Playlist, 'description' | 'cover_art_url'>>,
-  songs: Omit<Song, 'id' | 'added_at'>[]
+  fields: Pick<Playlist, 'name'> & Partial<Pick<Playlist, 'description' | 'cover_art_url' | 'owner'>>,
+  songs: (Omit<Song, 'id'> & { added_at?: string })[]
 ): Promise<{ playlist: Playlist; tracks_imported: number }> {
   const data = await read();
   const now = new Date().toISOString();
@@ -147,10 +161,11 @@ export async function importPlaylist(
     id: generateId(),
     name: fields.name,
     description: fields.description ?? null,
+    owner: fields.owner ?? null,
     cover_art_url: fields.cover_art_url ?? null,
     created_at: now,
     updated_at: now,
-    songs: songs.map((s) => ({ ...s, id: generateId(), added_at: now })),
+    songs: songs.map((s) => ({ ...s, id: generateId(), added_at: s.added_at || now })),
   };
 
   data.playlists.push(playlist);

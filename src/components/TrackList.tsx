@@ -5,6 +5,7 @@ import type { PlaylistWithStats, Song } from '@/types';
 
 interface TrackListProps {
   playlist: PlaylistWithStats;
+  onDelete?: () => void;
 }
 
 function formatDuration(ms: number | null): string {
@@ -52,7 +53,11 @@ function TrackRow({ song, index }: { song: Song; index: number }) {
             </div>
           )}
           <div className="min-w-0">
-            <p className="text-sm font-medium text-black truncate">{song.name}</p>
+            {song.url ? (
+              <a href={song.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-black truncate block hover:underline">{song.name}</a>
+            ) : (
+              <p className="text-sm font-medium text-black truncate">{song.name}</p>
+            )}
             <p className="text-xs text-gray-500 truncate">{song.artist_name}</p>
           </div>
         </div>
@@ -70,7 +75,7 @@ function TrackRow({ song, index }: { song: Song; index: number }) {
   );
 }
 
-export default function TrackList({ playlist }: TrackListProps) {
+export default function TrackList({ playlist, onDelete }: TrackListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -80,7 +85,7 @@ export default function TrackList({ playlist }: TrackListProps) {
   return (
     <div ref={containerRef} className="max-w-5xl mx-auto px-8 pb-16 scroll-mt-8">
       {/* Playlist header */}
-      <div className="flex items-start gap-6 mb-8 pt-4 border-t border-black">
+      <div className="flex items-start gap-6 mb-8 pt-6 relative">
         {/* Cover art */}
         <div className="w-48 h-48 flex-shrink-0 border border-black bg-gray-50 overflow-hidden">
           {playlist.cover_art_url ? (
@@ -100,6 +105,16 @@ export default function TrackList({ playlist }: TrackListProps) {
           )}
         </div>
 
+        {/* Delete button */}
+        {onDelete && (
+          <button
+            onClick={onDelete}
+            className="absolute top-6 right-0 text-sm text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+          >
+            Delete playlist
+          </button>
+        )}
+
         {/* Info */}
         <div className="flex-1 min-w-0 pt-2">
           <h2
@@ -111,10 +126,17 @@ export default function TrackList({ playlist }: TrackListProps) {
           {playlist.description && (
             <p className="text-sm text-gray-500 mt-1 line-clamp-2">{playlist.description}</p>
           )}
-          <p className="text-sm text-gray-400 mt-3">
+          {playlist.owner && (
+            <p className="text-sm text-gray-500 mt-1">{playlist.owner}</p>
+          )}
+          <p className="text-sm text-gray-400 mt-2">
             {playlist.song_count} song{playlist.song_count !== 1 ? 's' : ''}
             <span className="mx-2">·</span>
             {formatTotalDuration(playlist.total_duration_ms)}
+            <span className="mx-2">·</span>
+            {playlist.earliest_added_at
+              ? formatDate(playlist.earliest_added_at)
+              : formatDate(playlist.created_at)}
           </p>
         </div>
       </div>
