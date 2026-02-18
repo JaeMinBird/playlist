@@ -29,6 +29,13 @@ function formatDate(iso: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function formatDateWithTime(iso: string): string {
+  const date = new Date(iso);
+  const d = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const t = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${d}, ${t}`;
+}
+
 function TrackRow({ song, index }: { song: Song; index: number }) {
   return (
     <tr className="group border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors">
@@ -66,7 +73,7 @@ function TrackRow({ song, index }: { song: Song; index: number }) {
         {song.album_name ?? '—'}
       </td>
       <td className="py-3 px-4 text-sm text-gray-400 whitespace-nowrap hidden lg:table-cell">
-        {formatDate(song.added_at)}
+        {formatDateWithTime(song.added_at)}
       </td>
       <td className="py-3 px-4 text-sm text-gray-400 tabular-nums whitespace-nowrap text-right">
         {formatDuration(song.duration_ms)}
