@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
+import sharp from 'sharp';
 import { fetchFullPlaylist, type SpotifyTrack } from '@/lib/spotify';
 import { importPlaylist } from '@/lib/store';
+import { checkAuth } from '@/lib/auth';
 
 const COVERS_DIR = join(process.cwd(), 'public', 'covers');
 
@@ -35,13 +37,12 @@ async function downloadCover(imageUrl: string, playlistId: string): Promise<stri
     const res = await fetch(imageUrl);
     if (!res.ok) return null;
 
-    const contentType = res.headers.get('content-type') || '';
-    const ext = contentType.includes('png') ? 'png' : 'jpg';
-    const filename = `${playlistId}.${ext}`;
+    const filename = `${playlistId}.webp`;
 
     await mkdir(COVERS_DIR, { recursive: true });
-    const buffer = Buffer.from(await res.arrayBuffer());
-    await writeFile(join(COVERS_DIR, filename), buffer);
+    const raw = Buffer.from(await res.arrayBuffer());
+    const webp = await sharp(raw).webp({ quality: 90 }).toBuffer();
+    await writeFile(join(COVERS_DIR, filename), webp);
 
     return `/covers/${filename}`;
   } catch (err) {
@@ -51,6 +52,8 @@ async function downloadCover(imageUrl: string, playlistId: string): Promise<stri
 }
 
 export async function POST(request: NextRequest) {
+  const denied = checkAuth(request);
+  if (denied) return denied;
   try {
     const { url } = await request.json();
 

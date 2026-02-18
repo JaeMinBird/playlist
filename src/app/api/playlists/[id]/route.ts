@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPlaylist, updatePlaylist, deletePlaylist } from '@/lib/store';
+import { checkAuth } from '@/lib/auth';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = checkAuth(request);
+  if (denied) return denied;
   try {
     const { id } = await params;
     const playlist = await getPlaylist(id);
@@ -24,6 +27,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = checkAuth(request);
+  if (denied) return denied;
   try {
     const { id } = await params;
     const { name, description, cover_art_url } = await request.json();
@@ -51,9 +56,11 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = checkAuth(request);
+  if (denied) return denied;
   try {
     const { id } = await params;
     const deleted = await deletePlaylist(id);

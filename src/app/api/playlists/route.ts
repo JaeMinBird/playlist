@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllPlaylists, createPlaylist, deletePlaylists } from '@/lib/store';
+import { checkAuth } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const denied = checkAuth(request);
+  if (denied) return denied;
   try {
     const playlists = await getAllPlaylists();
     return NextResponse.json({ playlists });
@@ -12,6 +15,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const denied = checkAuth(request);
+  if (denied) return denied;
   try {
     const { name, description, cover_art_url } = await request.json();
 
@@ -33,6 +38,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const denied = checkAuth(request);
+  if (denied) return denied;
   try {
     const { ids } = await request.json();
 
